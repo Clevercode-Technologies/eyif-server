@@ -8,6 +8,7 @@ const Contact = require("./models/Contact");
 const NewsletterSubscription = require("./models/NewsletterSubscription");
 const GrantApplication = require("./models/GrantApplication");
 const SeatReservation = require("./models/SeatReservation");
+const ExhibitionInquiry = require("./models/ExhibitionInquiry");
 const IdeaTrackApplication = require("./models/IdeaTrackApplication");
 const BuildTrackApplication = require("./models/BuildTrackApplication");
 const ScaleTrackApplication = require("./models/ScaleTrackApplication");
@@ -1242,6 +1243,160 @@ app.post("/apply/scale", async (req, res) => {
   } catch (error) {
     console.error("Error submitting scale track application:", error);
     res.status(500).send({ message: "Error submitting application", status: 500, error: error.message });
+  }
+});
+
+// Exhibition Inquiry Route
+app.post("/exhibition", async (req, res) => {
+  const { firstName, lastName, email, phone, message } = req.body;
+  const fullName = `${firstName} ${lastName}`;
+
+  // Basic validation
+  if (!firstName || !lastName || !email || !phone) {
+    return res.status(400).send({
+      message: "First name, last name, email, and phone are required.",
+      status: 400,
+    });
+  }
+
+  // Save to DB
+  try {
+    await ExhibitionInquiry.create({ firstName, lastName, email, phone, message });
+  } catch (dbError) {
+    console.error("Error saving exhibition inquiry to DB:", dbError);
+    return res.status(500).send({
+      message: "Error saving exhibition inquiry",
+      status: 500,
+      error: dbError.message,
+    });
+  }
+
+  const adminNotificationTemplate = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>New Exhibition Booth Inquiry</title>
+      <style>
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #4E31AA; padding: 20px; text-align: center; color: white; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .footer { background-color: #4E31AA; padding: 15px; text-align: center; color: white; font-size: 14px; }
+        .info-item { margin-bottom: 10px; }
+        .info-label { font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <img src="https://edoyouthimpactforum.com/images/logo-2.png" alt="EYIF Logo" style="max-width: 150px;">
+          <h1>New Exhibition Booth Inquiry</h1>
+        </div>
+        <div class="content">
+          <div class="info-item"><span class="info-label">Name:</span> ${fullName}</div>
+          <div class="info-item"><span class="info-label">Email:</span> ${email}</div>
+          <div class="info-item"><span class="info-label">Phone:</span> ${phone}</div>
+          <div class="info-item"><span class="info-label">Message:</span><p>${message || "—"}</p></div>
+          <div class="info-item"><span class="info-label">Submission Date:</span> ${new Date().toLocaleString()}</div>
+        </div>
+        <div class="footer">
+          <p>&copy; 2026 Edo Youth Impact Forum (EYIF). All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const applicantConfirmationTemplate = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Exhibition Inquiry Received</title>
+      <style>
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background-color: #4E31AA; padding: 20px; text-align: center; color: white; }
+        .content { padding: 20px 30px; line-height: 1.6; }
+        .footer { background-color: #f4f4f4; text-align: center; padding: 15px; font-size: 14px; color: #666; }
+        .btn { display: inline-block; background-color: #4E31AA; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin-top: 15px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <img src="https://edoyouthimpactforum.com/images/logo-2.png" alt="EYIF Logo" style="max-width: 150px;">
+          <h1>Exhibition Inquiry Received!</h1>
+        </div>
+        <div class="content">
+          <p>Dear <strong>${fullName}</strong>,</p>
+          <p>Thank you for your interest in exhibiting at the Edo Youth Impact Forum (EYIF) 2026. We have received your inquiry and our team will get back to you shortly with next steps.</p>
+          <p>If your inquiry is urgent, please contact our Exhibition Desk directly.</p>
+          <p>Best regards,</p>
+          <p><strong>The EYIF 2026 Team</strong></p>
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="${process.env.WEBSITE_URL}" class="btn">Visit Our Website</a>
+          </div>
+        </div>
+        <div class="footer">
+          <p>&copy; 2026 Edo Youth Impact Forum (EYIF). All rights reserved.</p>
+          <p>
+            <a href="${process.env.WEBSITE_URL}" style="color: #4E31AA; text-decoration: none;">Visit our website</a> |
+            <a href="${process.env.WEBSITE_URL}/contact.html" style="color: #4E31AA; text-decoration: none;">Contact us</a>
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    // Send confirmation email to the inquirer
+    const info = await sendMail({
+      to: email,
+      subject: "Your EYIF 2026 Exhibition Inquiry Has Been Received",
+      html: applicantConfirmationTemplate,
+    });
+
+    // Send notification emails to admins
+    const adminEmails = [
+      "iguodalaefosa@gmail.com",
+      "ebuka0064@gmail.com",
+      "onovaeochuko@gmail.com",
+    ];
+
+    const adminEmailPromises = adminEmails.map((adminEmail) =>
+      sendMail({
+        to: adminEmail,
+        subject: `New Exhibition Inquiry: ${fullName}`,
+        html: adminNotificationTemplate,
+      })
+    );
+
+    const adminReports = await Promise.all(adminEmailPromises);
+
+    console.log("Exhibition inquiry confirmation email sent:", info.id || info.messageId || "Success");
+    adminReports.forEach((report, index) => {
+      console.log(
+        `Exhibition inquiry notification email sent to ${adminEmails[index]}:`,
+        report.id || report.messageId || "Success"
+      );
+    });
+
+    res.status(200).send({
+      message: "Exhibition inquiry submitted successfully",
+      status: 200,
+    });
+  } catch (error) {
+    console.error("Error sending exhibition inquiry email:", error);
+    res.status(500).send({
+      message: "Error submitting exhibition inquiry",
+      status: 500,
+      error: error.message,
+    });
   }
 });
 

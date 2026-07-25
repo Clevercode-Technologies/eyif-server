@@ -1363,6 +1363,7 @@ app.post("/exhibition", async (req, res) => {
 
     // Send notification emails to admins
     const adminEmails = [
+      "eyif@edoyouthimpactforum.org",
       "iguodalaefosa@gmail.com",
       "ebuka0064@gmail.com",
       "onovaeochuko@gmail.com",

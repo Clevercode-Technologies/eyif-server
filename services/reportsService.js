@@ -5,6 +5,7 @@ const SeatReservation = require("../models/SeatReservation");
 const IdeaTrackApplication = require("../models/IdeaTrackApplication");
 const BuildTrackApplication = require("../models/BuildTrackApplication");
 const ScaleTrackApplication = require("../models/ScaleTrackApplication");
+const MasterclassRegistration = require("../models/MasterclassRegistration");
 
 class ReportsService {
   constructor() {
@@ -16,6 +17,7 @@ class ReportsService {
       ideaTrackApplications: IdeaTrackApplication,
       buildTrackApplications: BuildTrackApplication,
       scaleTrackApplications: ScaleTrackApplication,
+      masterclassRegistrations: MasterclassRegistration,
     };
 
     this.models = Object.fromEntries(
@@ -223,6 +225,11 @@ class ReportsService {
         displayName: "Scale Track Applications",
         description: "EYIF 2026 growth-stage grant applications",
         fields: ["fullName", "email", "phone", "age", "companyName", "industry", "totalUsers", "monthlyRevenue", "annualRevenue", "teamSize", "status", "createdAt"]
+      },
+      masterclassRegistrations: {
+        displayName: "Masterclass Registrations",
+        description: "EYIF 2026 masterclass breakout session registrations",
+        fields: ["fullName", "email", "masterclass", "createdAt"]
       }
     };
 

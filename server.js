@@ -12,6 +12,7 @@ const ExhibitionInquiry = require("./models/ExhibitionInquiry");
 const IdeaTrackApplication = require("./models/IdeaTrackApplication");
 const BuildTrackApplication = require("./models/BuildTrackApplication");
 const ScaleTrackApplication = require("./models/ScaleTrackApplication");
+const MasterclassRegistration = require("./models/MasterclassRegistration");
 const reportsService = require("./services/reportsService");
 
 dotenv.config();
@@ -1395,6 +1396,212 @@ app.post("/exhibition", async (req, res) => {
     console.error("Error sending exhibition inquiry email:", error);
     res.status(500).send({
       message: "Error submitting exhibition inquiry",
+      status: 500,
+      error: error.message,
+    });
+  }
+});
+
+// Masterclass Registration Route
+app.post("/masterclass-registration", async (req, res) => {
+  const { fullName, email, masterclass } = req.body;
+
+  // Basic validation
+  if (!fullName || !email || !masterclass) {
+    return res.status(400).send({
+      message: "Full name, email, and masterclass selection are required.",
+      status: 400,
+    });
+  }
+
+  // Save to DB
+  try {
+    await MasterclassRegistration.create({ fullName, email, masterclass });
+  } catch (dbError) {
+    console.error("Error saving masterclass registration to DB:", dbError);
+    return res.status(500).send({
+      message: "Error saving masterclass registration",
+      status: 500,
+      error: dbError.message,
+    });
+  }
+
+  const registrationDate = new Date().toLocaleString();
+  const confirmationCode = "EYIF-MC-" + Date.now().toString(36).toUpperCase();
+
+  // ── Ticket-style confirmation email to the registrant ──
+  const applicantConfirmationTemplate = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Your Masterclass Ticket &mdash; EYIF 2026</title>
+      <style>
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background-color: #4E31AA; padding: 20px; text-align: center; color: white; }
+        .ticket { margin: 24px 20px; border: 2px dashed #4E31AA; border-radius: 10px; padding: 28px 24px; background: #faf9ff; }
+        .ticket-title { text-align: center; font-size: 22px; font-weight: bold; color: #4E31AA; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+        .ticket-code { text-align: center; font-size: 14px; color: #888; margin-bottom: 22px; }
+        .ticket-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .ticket-row:last-child { border-bottom: none; }
+        .ticket-label { font-weight: bold; color: #555; }
+        .ticket-value { color: #333; text-align: right; max-width: 60%; }
+        .content { padding: 20px 30px; line-height: 1.6; }
+        .footer { background-color: #f4f4f4; text-align: center; padding: 15px; font-size: 14px; color: #666; }
+        .btn { display: inline-block; background-color: #4E31AA; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin-top: 15px; }
+        .important-note { background: #fff8e1; border-left: 4px solid #ffc000; padding: 14px 16px; margin: 18px 0; border-radius: 4px; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <img src="https://edoyouthimpactforum.com/images/logo-2.png" alt="EYIF Logo" style="max-width: 150px;">
+          <h1>Your Masterclass Ticket</h1>
+          <p style="margin: 4px 0 0;">Edo Youth Impact Forum 2026</p>
+        </div>
+        <div class="content">
+          <p>Dear <strong>${fullName}</strong>,</p>
+          <p>Congratulations! Your registration for a masterclass at EYIF 2026 has been confirmed. Below is your ticket &mdash; please keep this email or bring it with you on the day of the event.</p>
+        </div>
+
+        <div class="ticket">
+          <div class="ticket-title">&#127903; Masterclass Ticket</div>
+          <div class="ticket-code">Confirmation Code: ${confirmationCode}</div>
+          <div class="ticket-row">
+            <span class="ticket-label">Attendee</span>
+            <span class="ticket-value">${fullName}</span>
+          </div>
+          <div class="ticket-row">
+            <span class="ticket-label">Email</span>
+            <span class="ticket-value">${email}</span>
+          </div>
+          <div class="ticket-row">
+            <span class="ticket-label">Masterclass</span>
+            <span class="ticket-value">${masterclass}</span>
+          </div>
+          <div class="ticket-row">
+            <span class="ticket-label">Session Time</span>
+            <span class="ticket-value">9:00 AM &ndash; 10:50 AM</span>
+          </div>
+          <div class="ticket-row">
+            <span class="ticket-label">Venue</span>
+            <span class="ticket-value">Victor Uwaifo Creative Hub, Benin City</span>
+          </div>
+          <div class="ticket-row">
+            <span class="ticket-label">Registered On</span>
+            <span class="ticket-value">${registrationDate}</span>
+          </div>
+        </div>
+
+        <div class="content">
+          <div class="important-note">
+            <strong>&#9888; Please note:</strong> Each delegate may attend only one masterclass.
+            Please arrive at least 15 minutes before the session begins. Present this confirmation
+            email at the registration desk on arrival.
+          </div>
+          <p>We look forward to seeing you at EYIF 2026!</p>
+          <p>Best regards,</p>
+          <p><strong>The EYIF 2026 Team</strong></p>
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="${process.env.WEBSITE_URL}" class="btn">Visit Our Website</a>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p>&copy; 2026 Edo Youth Impact Forum (EYIF). All rights reserved.</p>
+          <p>
+            <a href="${process.env.WEBSITE_URL}" style="color: #4E31AA; text-decoration: none;">Visit our website</a> |
+            <a href="${process.env.WEBSITE_URL}/contact.html" style="color: #4E31AA; text-decoration: none;">Contact us</a>
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  // ── Admin notification email ──
+  const adminNotificationTemplate = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>New Masterclass Registration</title>
+      <style>
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #4E31AA; padding: 20px; text-align: center; color: white; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .footer { background-color: #4E31AA; padding: 15px; text-align: center; color: white; font-size: 14px; }
+        .info-item { margin-bottom: 10px; }
+        .info-label { font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <img src="https://edoyouthimpactforum.com/images/logo-2.png" alt="EYIF Logo" style="max-width: 150px;">
+          <h1>New Masterclass Registration</h1>
+        </div>
+        <div class="content">
+          <div class="info-item"><span class="info-label">Name:</span> ${fullName}</div>
+          <div class="info-item"><span class="info-label">Email:</span> ${email}</div>
+          <div class="info-item"><span class="info-label">Masterclass:</span> ${masterclass}</div>
+          <div class="info-item"><span class="info-label">Confirmation Code:</span> ${confirmationCode}</div>
+          <div class="info-item"><span class="info-label">Submission Date:</span> ${registrationDate}</div>
+        </div>
+        <div class="footer">
+          <p>&copy; 2026 Edo Youth Impact Forum (EYIF). All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    // Send ticket-style confirmation email to the registrant
+    const info = await sendMail({
+      to: email,
+      subject: `Your Masterclass Ticket \u2014 ${masterclass} | EYIF 2026`,
+      html: applicantConfirmationTemplate,
+    });
+
+    // Send notification emails to admins
+    const adminEmails = [
+      "eyif@edoyouthimpactforum.org",
+      "iguodalaefosa@gmail.com",
+      "ebuka0064@gmail.com",
+      "onovaeochuko@gmail.com",
+    ];
+
+    const adminEmailPromises = adminEmails.map((adminEmail) =>
+      sendMail({
+        to: adminEmail,
+        subject: `New Masterclass Registration: ${fullName} \u2014 ${masterclass}`,
+        html: adminNotificationTemplate,
+      })
+    );
+
+    const adminReports = await Promise.all(adminEmailPromises);
+
+    console.log("Masterclass registration confirmation email sent:", info.id || info.messageId || "Success");
+    adminReports.forEach((report, index) => {
+      console.log(
+        `Masterclass registration notification email sent to ${adminEmails[index]}:`,
+        report.id || report.messageId || "Success"
+      );
+    });
+
+    res.status(200).send({
+      message: "Masterclass registration submitted successfully",
+      status: 200,
+    });
+  } catch (error) {
+    console.error("Error sending masterclass registration email:", error);
+    res.status(500).send({
+      message: "Error submitting masterclass registration",
       status: 500,
       error: error.message,
     });

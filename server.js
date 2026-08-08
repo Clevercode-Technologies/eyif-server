@@ -838,7 +838,7 @@ app.post("/grant-registration", async (req, res) => {
 
     // Send notification emails to admins
     const adminEmails = [
-      "iguodalaefosa@gmail.com",
+      // "iguodalaefosa@gmail.com",
       "ebuka0064@gmail.com",
       "onovaeochuko@gmail.com",
       // "jephthahimade@gmail.com",
@@ -1365,7 +1365,7 @@ app.post("/exhibition", async (req, res) => {
     // Send notification emails to admins
     const adminEmails = [
       "eyif@edoyouthimpactforum.org",
-      "iguodalaefosa@gmail.com",
+      // "iguodalaefosa@gmail.com",
       "ebuka0064@gmail.com",
       "onovaeochuko@gmail.com",
     ];
@@ -1486,6 +1486,10 @@ app.post("/masterclass-registration", async (req, res) => {
             <span class="ticket-value">9:00 AM &ndash; 10:50 AM</span>
           </div>
           <div class="ticket-row">
+            <span class="ticket-label">Date</span>
+            <span class="ticket-value">Day 1 &middot; Tuesday 18th August 2026 &middot; Ideas &amp; Capital</span>
+          </div>
+          <div class="ticket-row">
             <span class="ticket-label">Venue</span>
             <span class="ticket-value">Victor Uwaifo Creative Hub, Benin City</span>
           </div>
@@ -1571,7 +1575,7 @@ app.post("/masterclass-registration", async (req, res) => {
     // Send notification emails to admins
     const adminEmails = [
       "eyif@edoyouthimpactforum.org",
-      "iguodalaefosa@gmail.com",
+      // "iguodalaefosa@gmail.com",
       "ebuka0064@gmail.com",
       "onovaeochuko@gmail.com",
     ];
